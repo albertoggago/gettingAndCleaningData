@@ -1,89 +1,79 @@
-# 1 - initial load libraries and clean environment
+# initial load libraries and clean environment
 packagesToLoad <- c("stringr","tidyr", "dplyr", "rstudioapi")
 install.packages(setdiff(packagesToLoad, rownames(installed.packages()))) 
-
 library(stringr)
 library(tidyr)
 library(dplyr)
 library(rstudioapi)
 rm(list=ls())
-
-
-# define working path in the place of R file. 
 setwd(paste0(head(str_split(getSourceEditorContext()$path,"/")[[1]],-1),collapse="/"))
 getwd()
 
-# 2 - Load files.
+# Load files.
 folder_data <- "UCI HAR Dataset"
+urlFile <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
 file_data <- "getdata_projectfiles_UCI HAR Dataset.zip"
-if (!file.exists(folder_data)) {
-  if (file.exists(file_data)) {
-    print("UnZip file")
+
+if (!file.exists(file_data)) {
+  download.file(urlFile,file_data,method="curl")
+}
+if (!dir.exists(folder_data)) {
     unzip(file_data)
-  } else {
-    stop("#### ERROR ZIP FILE AND PATH DO NOT EXISTs #####")
-  }
 }
 
-# 3 - Read DF with definitions one of Y activities and Features Column Names
-dfYActivityLabels <- read.csv(paste0(folder_data,"/","activity_labels.txt"), header = FALSE)
-dfYActivityLabels <- dfYActivityLabels %>% separate(1, c("key","label"), sep=" ")
+# Read DF with definitions one of Y activities and Features Column Names
+dfYActivityLabels <- read.table(paste(folder_data,"activity_labels.txt", sep = "/"),col.names = c("key","label"))
+dfFeaturesColumnN <- read.table(paste(folder_data,"features.txt", sep = "/"), col.names = c("key","feature"))
 
-dfFeaturesColumnN <- read.csv(paste0(folder_data,"/","features.txt"), header = FALSE, sep = "\t")
-dfFeaturesColumnN <- dfFeaturesColumnN %>% separate(1, c("key","feature"), sep= " ")
-
-
-# 4 Load files X and Y files. 
-dfX_test <- read.csv(paste0(folder_data,"/","test/","X_test.txt"), header = FALSE)
-dfX_train <- read.csv(paste0(folder_data,"/","train/","X_train.txt"), header = FALSE)
-dfY_test <- read.csv(paste0(folder_data,"/","test/","Y_test.txt"), header = FALSE)
-dfY_train <- read.csv(paste0(folder_data,"/","train/","Y_train.txt"), header = FALSE)
+dfX_test <- read.table(paste(folder_data,"test","x_test.txt", sep = "/"), col.names = dfFeaturesColumnN$feature)
+dfY_test <- read.table(paste(folder_data,"test","y_test.txt", sep = "/"), col.names = c("activity"))
+dfX_train <- read.table(paste(folder_data,"train","x_train.txt", sep = "/"), col.names = dfFeaturesColumnN$feature)
+dfY_train <- read.table(paste(folder_data,"train","y_train.txt", sep = "/"), col.names = c("activity"))
+dfSubject_train <- read.table(paste(folder_data,"train","subject_train.txt", sep = "/"), col.names = c("subject"))
+dfSubject_test <- read.table(paste(folder_data,"test","subject_test.txt", sep = "/"), col.names = c("subject"))
 dfX_test$type   <- "test"
 dfX_train$type  <- "train"
-dfY_test$type   <- "test"
-dfY_train$type <- "train"
-
-# merging train and test
+# 1 - Merges the training and the test sets to create one data set.
 dfX <- rbind(dfX_test, dfX_train)
 dfY <- rbind(dfY_test, dfY_train)
-rm(list = c("dfX_test","dfX_train","dfY_test","dfY_train"))
+dfSubject <- rbind(dfSubject_test, dfSubject_train)
+dfTotal <- cbind(dfX,dfY,dfSubject)
 
-# Break all information in rows of X file
-dfX$V1 <- str_trim(dfX$V1)
-dfX <- dfX %>% separate(col=1, into=dfFeaturesColumnN$key, sep=" +", remove = TRUE)
+# 2 - Extracts only the measurements on the mean and standard deviation for each measurement. 
+dfFinal <- dfTotal[,c(grep("mean|std",names(dfTotal)),(dim(dfTotal)[2]-3):dim(dfTotal)[2])]
 
-# Merge both information the X files and Y files.
-dfFinal <- dfX %>% select(-type) %>% mutate_if(is.character,as.numeric)
-dfFinal$subject <- as.factor(dfX$type)
 #separate variable into variable, estimated and additional vectors
-dfFinal <- dfFinal %>% gather(key="variable",value="observation",1:561)
-dfFinal$variable <- as.character(factor(dfFinal$variable,labels=dfFeaturesColumnN$feature,levels=dfFeaturesColumnN$key))
-
-#This step need time. Separate variable row in different componets
-dfFinal <- dfFinal %>% separate("variable",c("variable","estimated","temp"), sep="-", remove = TRUE)
-dfFinal <- dfFinal %>% separate("temp",c("coordinate","additionalV"), sep=",", remove = TRUE)
+dfFinal <- dfFinal %>% gather(key="variable",value="observation",1:(dim(dfFinal)[2]-3))
+dfFinal <- dfFinal %>% separate("variable",c("variable","estimated","coordinate"))
 
 #clean all information using factors instead chars.
-dfFinal$activity <- factor(dfY$V1,labels=dfYActivityLabels$label,levels=dfYActivityLabels$key)
-dfFinal$variable <- as.factor(dfFinal$variable)
+dfFinal$activity <- factor(dfFinal$activity,labels=dfYActivityLabels$label,levels=dfYActivityLabels$key)
 dfFinal$estimated <- as.factor(dfFinal$estimated)
 dfFinal$coordinate <- as.factor(dfFinal$coordinate)
-dfFinal$additionalV <- as.factor(dfFinal$additionalV)
+dfFinal$type <- as.factor(dfFinal$type)
 
-rm(list = c("dfX","dfY", "dfFeaturesColumnN", "dfYActivityLabels","folder_data", "file_data"))
+# 3 - Uses descriptive activity names to name the activities in the data set
+# 4 - Appropriately labels the data set with descriptive variable names. 
+dfFinal$variable <- gsub("Acc","Acceleration",dfFinal$variable)
+dfFinal$variable <- gsub("^f","frecuency",dfFinal$variable)
+dfFinal$variable <- gsub("^t","time",dfFinal$variable)
+dfFinal$variable <- gsub("BodyBody","Body",dfFinal$variable)
+dfFinal$variable <- gsub("Mag","Magnitude",dfFinal$variable)
+dfFinal$variable <- gsub("Gyro","Gyroscope",dfFinal$variable)
+dfFinal$variable <- gsub("Jerk","JerkSignals",dfFinal$variable)
+dfFinal$variable <- as.factor(dfFinal$variable)
+
+summary(dfFinal)
 str(dfFinal)
 
-## 5 Extract only the measurements on the mean and standard deviation
-# -- Extracts only the measurements on the mean and standard deviation for each measurement. --
+# 5 From the data set in step 4, creates a second, independent tidy data set 
+#   with the average of each variable for each activity and each subject.
 
-dfMeanStd <- dfFinal[grep("(mean\\(\\)|std\\(\\))", dfFinal$estimated),]
-
-## 6 Data set with the average of each variable of previous table
-# --From the data set in step 4, creates a second, independent tidy data set with the average of each 
-#   variable for each activity and each subject.--
-
-dfAverage <- dfMeanStd %>% 
-             group_by(variable, estimated, coordinate) %>%
+dfAverage <- dfFinal %>% 
+             group_by(activity, subject, variable, estimated, coordinate) %>%
              summarise(mean = mean(observation)) %>% 
-             arrange(variable, estimated, coordinate)
-write.table(dfAverage,row.name=FALSE)
+             arrange(activity, subject, variable, estimated, coordinate)
+
+# 7 Save document
+write.table(dfAverage,file="tidy_data.txt",row.name=FALSE)
+

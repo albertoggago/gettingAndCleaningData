@@ -4,4 +4,5 @@
 .Ruserdata
 *.Rproj
 UCI HAR Dataset/**
+getdata_projectfiles_UCI HAR Dataset.zip
 *.html
