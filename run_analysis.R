@@ -40,40 +40,32 @@ dfSubject <- rbind(dfSubject_test, dfSubject_train)
 dfTotal <- cbind(dfX,dfY,dfSubject)
 
 # 2 - Extracts only the measurements on the mean and standard deviation for each measurement. 
-dfFinal <- dfTotal[,c(grep("mean|std",names(dfTotal)),(dim(dfTotal)[2]-3):dim(dfTotal)[2])]
-
-#separate variable into variable, estimated and additional vectors
-dfFinal <- dfFinal %>% gather(key="variable",value="observation",1:(dim(dfFinal)[2]-3))
-dfFinal <- dfFinal %>% separate("variable",c("variable","estimated","coordinate"))
-
-#clean all information using factors instead chars.
-dfFinal$activity <- factor(dfFinal$activity,labels=dfYActivityLabels$label,levels=dfYActivityLabels$key)
-dfFinal$estimated <- as.factor(dfFinal$estimated)
-dfFinal$coordinate <- as.factor(dfFinal$coordinate)
-dfFinal$type <- as.factor(dfFinal$type)
+dfFinal <- dfTotal[,c(grep("mean|std|activity|subject",names(dfTotal)))]
 
 # 3 - Uses descriptive activity names to name the activities in the data set
-# 4 - Appropriately labels the data set with descriptive variable names. 
-dfFinal$variable <- gsub("Acc","Acceleration",dfFinal$variable)
-dfFinal$variable <- gsub("^f","frecuency",dfFinal$variable)
-dfFinal$variable <- gsub("^t","time",dfFinal$variable)
-dfFinal$variable <- gsub("BodyBody","Body",dfFinal$variable)
-dfFinal$variable <- gsub("Mag","Magnitude",dfFinal$variable)
-dfFinal$variable <- gsub("Gyro","Gyroscope",dfFinal$variable)
-dfFinal$variable <- gsub("Jerk","JerkSignals",dfFinal$variable)
-dfFinal$variable <- as.factor(dfFinal$variable)
+dfFinal$activity <- factor(dfFinal$activity,labels=dfYActivityLabels$label,levels=dfYActivityLabels$key)
+dfFinal$subject <- as.factor(dfFinal$subject)
 
+# 4 - Appropriately labels the data set with descriptive variable names. 
+names(dfFinal) <- gsub("Acc","Acceleration",names(dfFinal))
+names(dfFinal) <- gsub("^f","frecuency",names(dfFinal))
+names(dfFinal) <- gsub("^t","time",names(dfFinal))
+names(dfFinal) <- gsub("BodyBody","Body",names(dfFinal))
+names(dfFinal) <- gsub("Mag","Magnitude",names(dfFinal))
+names(dfFinal) <- gsub("Gyro","Gyroscope",names(dfFinal))
+names(dfFinal) <- gsub("Jerk","JerkSignals",names(dfFinal))
+
+names(dfFinal)
 summary(dfFinal)
 str(dfFinal)
 
 # 5 From the data set in step 4, creates a second, independent tidy data set 
 #   with the average of each variable for each activity and each subject.
 
-dfAverage <- dfFinal %>% 
-             group_by(activity, subject, variable, estimated, coordinate) %>%
-             summarise(mean = mean(observation)) %>% 
-             arrange(activity, subject, variable, estimated, coordinate)
+newTidy <- dfFinal %>% 
+             group_by(activity, subject) %>%
+             summarise_all("mean")
+# Save document
 
-# 7 Save document
-write.table(dfAverage,file="tidy_data.txt",row.name=FALSE)
+write.table(newTidy,file="newTidy.txt",row.name=FALSE)
 
