@@ -61,5 +61,6 @@ grouping all information by average for activity and subject.
 
 Using the information of vars, creating a codebook describing each var.
 
-Download the file as a csv. Codebook "codebook_dfFinal.csv" are included into project
+Download the file as a csv. Codebook "codebook_dfFinal.csv" are included into project. 
+
 I´d rather user the information of each var because it can help in the maintenance.
