@@ -56,7 +56,7 @@ names(dfFinal) <- gsub("Gyro","Gyroscope",names(dfFinal))
 names(dfFinal) <- gsub("Jerk","JerkSignals",names(dfFinal))
 
 names(dfFinal)
-summary(dfFinal)
+summary(dfFinal$subject)
 str(dfFinal)
 
 # 5 From the data set in step 4, creates a second, independent tidy data set 
@@ -66,6 +66,19 @@ newTidy <- dfFinal %>%
              group_by(activity, subject) %>%
              summarise_all("mean")
 # Save document
-
 write.table(newTidy,file="newTidy.txt",row.name=FALSE)
 
+
+
+
+# create the codebook
+codebook <- data.frame(variable=names(dfFinal),description0=names(dfFinal))
+codebook$description0 <- gsub("\\.\\.\\.","\\.",codebook$description0)
+codebook <- codebook %>% separate("description0",c("Description","Estimation","coordinates"),sep="\\.", remove = "TRUE")
+codebook$Description <- gsub("\\."," ",gsub("([A-Z])", " \\1", codebook$Description, fixed=FALSE))
+codebook <- codebook %>% separate("Description",c("Domain","BodyLinearAcelerationOrGravity","AcelerationOrGyroscope","JerkSignalsOrMagnitude"),sep=" ", remove="FALSE")
+
+codebook[codebook$variable=="activity","Description"]= "Each activity of the experiment (WALKING, WALKING_UPSTAIRS, WALKING_DOWNSTAIRS, SITTING, STANDING, LAYING)"
+codebook[codebook$variable=="subject","Description"]= "An identifier of the subject who carried out the experiment"
+
+write.csv(codebook,"codebook_dfFinal.csv")
