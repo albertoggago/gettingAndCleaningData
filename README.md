@@ -2,7 +2,7 @@
 
 Getting and Cleaning Data final Exercise
 
-# The process is divide by phases
+**Steps of run_analysis.R script**
 
 ## Initial load libraries and clean environment
 Load all needed libraries.
@@ -41,9 +41,9 @@ dfFinal is the extraction of dfTotal for only the vars related with mean and std
 activity using dfYActivityLabels is created as a factor.
 
 ## 4 - Appropriately labels the data set with descriptive variable names. 
-Change the name of vars adding information more descptive
+Change the name of vars adding information more descriptive
 
-* starting by "f" change by frecuency
+* starting by "f" change by frequency
 * starting by "t" change by time
 * acc by Acceleration
 * Clean BodyBody by Body
@@ -62,3 +62,4 @@ grouping all information by average for activity and subject.
 Using the information of vars, creating a codebook describing each var.
 
 Download the file as a csv. Codebook "codebook_dfFinal.csv" are included into project
+I´d rather user the information of each var because it can help in the maintenance.
